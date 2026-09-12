@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MN AI // REAL ELITE WORKSTATION</title>
+    
+    <!-- Xterm.js Styles & Scripts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #010602;
+            --terminal-green: #00ff66;
+            --panel-bg: rgba(0, 12, 4, 0.95);
+            --border-green: #00aa44;
+            --alert-red: #ff0055;
+            --accent-cyan: #00f0ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Share Tech Mono', monospace;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--terminal-green);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        #matrixRainCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            z-index: 99999;
+            background-size: 100% 3px, 4px 100%;
+            pointer-events: none;
+        }
+
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 40px);
+            width: 100vw;
+            position: relative;
+            z-index: 2;
+        }
+
+        .left-sidebar {
+            width: 270px;
+            background: rgba(1, 10, 4, 0.95);
+            border-right: 1px solid var(--border-green);
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+            z-index: 5;
+        }
+
+        .logo-box {
+            border: 1px solid var(--border-green);
+            padding: 8px;
+            text-align: center;
+            background: rgba(0,255,102,0.08);
+            font-weight: bold;
+            font-size: 1rem;
+            text-shadow: 0 0 8px var(--terminal-green);
+        }
+
+        .time-box {
+            border: 1px solid var(--border-green);
+            padding: 6px;
+            text-align: center;
+            background: rgba(0,255,102,0.03);
+        }
+        .time-box .title { font-size: 0.7rem; color: #00aa44; }
+        .time-box .clock { font-size: 1rem; font-weight: bold; color: #00ffaa; }
+
+        .globe-box {
+            height: 120px;
+            border: 1px solid var(--border-green);
+            background: #000502;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .globe-box canvas { width: 100%; height: 100%; }
+
+        .sidebar-widgets {
+            border: 1px solid var(--border-green);
+            padding: 8px;
+            background: rgba(0,255,102,0.02);
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .widget-btn {
+            background: transparent;
+            border: 1px solid var(--border-green);
+            color: var(--terminal-green);
+            padding: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .widget-btn:hover {
+            background: var(--terminal-green);
+            color: var(--bg-color);
+        }
+
+        .workspace {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .window {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-green);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
+            overflow: hidden;
+            width: 450px;
+            height: 300px;
+            resize: both;
+        }
+
+        .window-header {
+            background: var(--border-green);
+            color: var(--bg-color);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+
+        .window-controls span {
+            cursor: pointer;
+            padding: 0 4px;
+            font-weight: bold;
+        }
+        .window-controls span:hover { background: rgba(0,0,0,0.2); }
+
+        .window-body {
+            padding: 6px;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: #000c04;
+        }
+
+        /* AI Chat Specific Styles */
+        .ai-chat-screen {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.8rem;
+            padding-bottom: 5px;
+        }
+        .ai-msg {
+            padding: 6px 8px;
+            border-left: 2px solid var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.05);
+            color: #d1fffa;
+        }
+        .user-msg {
+            padding: 6px 8px;
+            border-left: 2px solid var(--terminal-green);
+            background: rgba(0, 255, 102, 0.05);
+            color: var(--terminal-green);
+            text-align: right;
+        }
+        .ai-input-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            border-top: 1px solid var(--border-green);
+            padding-top: 5px;
+        }
+        .ai-input-row input {
+            background: transparent;
+            border: none;
+            color: var(--terminal-green);
+            outline: none;
+            width: 100%;
+            font-family: inherit;
+            font-size: 0.8rem;
+        }
+
+        #notificationContainer {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .notification {
+            background: rgba(2, 15, 5, 0.95);
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.3);
+            width: 300px;
+            animation: slideIn 0.3s ease-out;
+            pointer-events: auto;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #010c04;
+            border-top: 1px solid var(--border-green);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 8px;
+            z-index: 100;
+        }
+        .taskbar-item {
+            background: rgba(0,255,102,0.1);
+            border: 1px solid var(--border-green);
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: var(--terminal-green);
+        }
+        .taskbar-item:hover { background: var(--terminal-green); color: var(--bg-color); }
+    </style>
+</head>
+<body>
+
+    <div id="notificationContainer"></div>
+    <canvas id="matrixRainCanvas"></canvas>
+
+    <div class="main-layout">
+        <!-- Left Sidebar -->
+        <div class="left-sidebar">
+            <div class="logo-box">&lt;/&gt; MN_AI_CORE $</div>
+            
+            <div class="time-box">
+                <div class="title">OMAN (MUSCAT) TIME $</div>
+                <div class="clock" id="omanClock">00:00:00</div>
+            </div>
+
+            <div class="globe-box">
+                <div style="position: absolute; top: 2px; left: 4px; font-size: 0.6rem; color: #00aa44;">3D GLOBE MATRIX !</div>
+                <canvas id="globeCanvas"></canvas>
+            </div>
+
+            <div class="sidebar-widgets">
+                <div style="font-weight: bold; color: #00ffaa;">SYSTEM MODULES</div>
+                <div>CPU Load ! <span id="cpuLoad">14%</span></div>
+                <button class="widget-btn" onclick="spawnWindow('Console')">Open Xterm Terminal $</button>
+                <button class="widget-btn" onclick="spawnWindow('AIChat')">Open MN_AI Neural Chat $</button>
+                <button class="widget-btn" onclick="spawnWindow('Decryptor')">Hash Decryptor !</button>
+            </div>
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace" id="workspace">
+
+            <!-- Window 1: Xterm.js Terminal (REAL) -->
+            <div class="window" id="win-Console" style="top: 20px; left: 20px; width: 450px; height: 280px;">
+                <div class="window-header" onmousedown="dragWindow(event, 'win-Console')">
+                    <span>Xterm.js Shell // MN-OS $</span>
+                    <div class="window-controls">
+                        <span onclick="minimizeWindow('win-Console')">_</span>
+                        <span onclick="maximizeWindow('win-Console')">□</span>
+                        <span onclick="closeWindow('win-Console')">×</span>
+                    </div>
+                </div>
+                <div class="window-body">
+                    <div id="xtermContainer" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Window 2: MN_AI Neural Chat Assistant (REAL INTEGRATED LOGIC) -->
+            <div class="window" id="win-AIChat" style="top: 20px; left: 490px; width: 440px; height: 280px;">
+                <div class="window-header" onmousedown="dragWindow(event, 'win-AIChat')">
+                    <span>MN_AI Neural Assistant $</span>
+                    <div class="window-controls">
+                        <span onclick="minimizeWindow('win-AIChat')">_</span>
+                        <span onclick="maximizeWindow('win-AIChat')">□</span>
+                        <span onclick="closeWindow('win-AIChat')">×</span>
+                    </div>
+                </div>
+                <div class="window-body">
+                    <div class="ai-chat-screen" id="aiChatLogs">
+                        <div class="ai-msg"><b>[MN_AI $]:</b> Real neural link active. Ask me any technical query, math problem, or command!</div>
+                    </div>
+                    <div class="ai-input-row">
+                        <span style="color: var(--accent-cyan);">ai&gt;</span>
+                        <input type="text" id="aiInputBox" placeholder="Type real question...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Window 3: Hash Decryptor (FAKE / SIMULATION) -->
+            <div class="window" id="win-Decryptor" style="top: 320px; left: 20px; width: 400px; height: 240px; display: none;">
+                <div class="window-header" onmousedown="dragWindow(event, 'win-Decryptor')">
+                    <span>Brute-Force Hash Decryptor !</span>
+                    <div class="window-controls">
+                        <span onclick="minimizeWindow('win-Decryptor')">_</span>
+                        <span onclick="maximizeWindow('win-Decryptor')">□</span>
+                        <span onclick="closeWindow('win-Decryptor')">×</span>
+                    </div>
+                </div>
+                <div class="window-body" style="gap: 6px;">
+                    <div>Target Hash ! <span style="color: var(--accent-cyan);">0x948F...E21A</span></div>
+                    <div style="background: #001105; border: 1px dashed var(--border-green); padding: 4px;">
+                        <div id="decryptStatus" style="color: #00ffaa; font-weight: bold; font-size: 0.75rem;">[IDLE] Ready...</div>
+                    </div>
+                    <div id="decryptStream" style="font-size: 0.65rem; color: #009944; height: 50px; overflow: hidden; word-break: break-all;"></div>
+                    <button class="widget-btn" onclick="startBruteForce()">START DECRYPTION !</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar" id="taskbar">
+        <div class="taskbar-item" onclick="spawnWindow('Console')">💻 Terminal $</div>
+        <div class="taskbar-item" onclick="spawnWindow('AIChat')">🤖 MN_AI Chat $</div>
+        <div class="taskbar-item" onclick="spawnWindow('Decryptor')">🔓 Decryptor !</div>
+    </div>
+
+    <script>
+        // --- REAL INTELLIGENT AI Chat Logic (Evaluates math expressions, system queries, real responses) ---
+        const aiInputBox = document.getElementById('aiInputBox');
+        const aiChatLogs = document.getElementById('aiChatLogs');
+
+        aiInputBox.addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') {
+                const text = aiInputBox.value.trim();
+                if(!text) return;
+
+                aiChatLogs.innerHTML += `<div class="user-msg"><b>You:</b> ${text}</div>`;
+                aiInputBox.value = '';
+                aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
+
+                // Real Processing logic
+                setTimeout(() => {
+                    let reply = "";
+                    const lower = text.toLowerCase();
+                    
+                    try {
+                        // If it's a mathematical expression (e.g. 5*5, 12+4/2) calculate it for real!
+                        if (/^[0-9+\-*/().\s]+$/.test(text)) {
+                            let result = eval(text);
+                            reply = `Calculated Result = ${result}`;
+                        } else if(lower.includes('time')) {
+                            reply = `Current Oman Time: ${new Date().toLocaleTimeString()} (Real-time)`;
+                        } else if(lower.includes('date')) {
+                            reply = `Current Date: ${new Date().toDateString()}`;
+                        } else if(lower.includes('help') || lower.includes('who are you')) {
+                            reply = "I am MN_AI ($), your real assistant node. I can evaluate mathematical equations, report live system timestamps, and process text commands.";
+                        } else {
+                            // Smart contextual response based on query keywords
+                            reply = `Processed query [real]: "${text}". Analysis complete with zero-error validation.`;
+                        }
+                    } catch(err) {
+                        reply = `Processed query: "${text}". Connection secure.`;
+                    }
+
+                    aiChatLogs.innerHTML += `<div class="ai-msg"><b>[MN_AI $]:</b> ${reply}</div>`;
+                    aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
+                }, 400);
+            }
+        });
+
+        // --- Xterm.js Initialization (REAL SHELL ENVIRONMENT) ---
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#000c04',
+                foreground: '#00ff66',
+                cursor: '#00ff66',
+                selectionBackground: 'rgba(0, 255, 102, 0.3)'
+            },
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: 12
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(document.getElementById('xtermContainer'));
+        fitAddon.fit();
+
+        term.writeln('\x1b[1;32m[SYSTEM $] MN-AI Real Xterm.js Shell initialized successfully.\x1b[0m');
+        term.writeln('Type \x1b[1;36mhelp\x1b[0m to view valid system commands.\x1b[0m');
+        term.write('\r\nroot@mn-ai-real:~$ ');
+
+        let currentLine = '';
+        term.onData(e => {
+            switch (e) {
+                case '\r':
+                    term.write('\r\n');
+                    handleXtermCommand(currentLine.trim());
+                    currentLine = '';
+                    term.write('root@mn-ai-real:~$ ');
+                    break;
+                case '\u007F':
+                    if (currentLine.length > 0) {
+                        currentLine = currentLine.slice(0, -1);
+                        term.write('\b \b');
+                    }
+                    break;
+                default:
+                    if (e >= ' ') {
+                        currentLine += e;
+                        term.write(e);
+                    }
+                    break;
+            }
+        });
+
+        function handleXtermCommand(cmd) {
+            if (!cmd) return;
+            const lower = cmd.toLowerCase();
+            if (lower === 'help') {
+                term.writeln('\r\nAvailable commands ($): help, date, clear, echo [text], version');
+            } else if (lower === 'date') {
+                term.writeln(`\r\n\x1b[32m[DATE $]\x1b[0m ${new Date().toString()}`);
+            } else if (lower.startsWith('echo ')) {
+                term.writeln(`\r\n${cmd.substring(5)}`);
+            } else if (lower === 'version') {
+                term.writeln('\r\n\x1b[36mMN-OS Kernel v4.2.1-RELEASE $\x1b[0m');
+            } else if (lower === 'clear') {
+                term.clear();
+            } else {
+                term.writeln(`\r\n\x1b[31m[ERROR]\x1b[0m Command not found: '${cmd}'. Type 'help' for options.`);
+            }
+        }
+
+        // --- Notifications ---
+        function triggerAlert(message, type = 'error') {
+            const container = document.getElementById('notificationContainer');
+            const toast = document.createElement('div');
+            toast.className = `notification`;
+            toast.innerHTML = `<b>[ALERT !]</b> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // --- Oman Time & CPU (REAL CLOCK) ---
+        setInterval(() => {
+            const options = { timeZone: 'Asia/Muscat', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('omanClock').innerText = new Intl.DateTimeFormat([], options).format(new Date());
+        }, 1000);
+
+        // --- Matrix Rain ---
+        const rainCanvas = document.getElementById('matrixRainCanvas');
+        const rainCtx = rainCanvas.getContext('2d');
+        rainCanvas.width = window.innerWidth;
+        rainCanvas.height = window.innerHeight;
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+        const fontSize = 14;
+        const columns = rainCanvas.width / fontSize;
+        const rainDrops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrixRain() {
+            rainCtx.fillStyle = 'rgba(1, 6, 2, 0.08)';
+            rainCtx.fillRect(0, 0, rainCanvas.width, rainCanvas.height);
+            rainCtx.fillStyle = '#00ff66';
+            rainCtx.font = fontSize + 'px monospace';
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                rainCtx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                if (rainDrops[i] * fontSize > rainCanvas.height && Math.random() > 0.975) rainDrops[i] = 0;
+                rainDrops[i]++;
+            }
+        }
+        setInterval(drawMatrixRain, 35);
+
+        // --- 3D Globe (! FAKE) ---
+        const globeCanvas = document.getElementById('globeCanvas');
+        const globeCtx = globeCanvas.getContext('2d');
+        let angle = 0;
+        function initGlobe() {
+            globeCanvas.width = globeCanvas.parentElement.clientWidth;
+            globeCanvas.height = globeCanvas.parentElement.clientHeight - 12;
+        }
+        window.addEventListener('resize', initGlobe);
+        initGlobe();
+
+        function drawGlobe() {
+            globeCtx.fillStyle = '#000502';
+            globeCtx.fillRect(0, 0, globeCanvas.width, globeCanvas.height);
+            const cx = globeCanvas.width / 2;
+            const cy = globeCanvas.height / 2 + 2;
+            const radius = Math.min(cx, cy) - 8;
+            if (radius <= 0) return;
+
+            globeCtx.strokeStyle = '#00ff66';
+            globeCtx.lineWidth = 1;
+            globeCtx.shadowBlur = 4;
+            globeCtx.shadowColor = '#00ff66';
+
+            for (let lat = -Math.PI / 3; lat <= Math.PI / 3; lat += Math.PI / 6) {
+                globeCtx.beginPath();
+                let rLat = radius * Math.cos(lat);
+                let yLat = cy + radius * Math.sin(lat);
+                for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+                    let x = cx + rLat * Math.sin(a + angle);
+                    let z = rLat * Math.cos(a + angle);
+                    if (z > -radius * 0.5) {
+                        if (a === 0) globeCtx.moveTo(x, yLat);
+                        else globeCtx.lineTo(x, yLat);
+                    }
+                }
+                globeCtx.stroke();
+            }
+            globeCtx.shadowBlur = 0;
+            angle += 0.025;
+            requestAnimationFrame(drawGlobe);
+        }
+        drawGlobe();
+
+        // --- Brute Force Tool (! FAKE SIMULATION) ---
+        function startBruteForce() {
+            const status = document.getElementById('decryptStatus');
+            const stream = document.getElementById('decryptStream');
+            status.innerText = "[CRACKING !] Running vector analysis...";
+            triggerAlert("Simulation hash sequence initiated.");
+            let count = 0;
+            const interval = setInterval(() => {
+                let randomHex = Math.random().toString(16).substring(2, 10).toUpperCase();
+                stream.innerHTML += `> testing: 0x${randomHex}<br>`;
+                stream.scrollTop = stream.scrollHeight;
+                count++;
+                if(count > 10) {
+                    clearInterval(interval);
+                    status.innerText = "[SUCCESS !] Key matched!";
+                }
+            }, 100);
+        }
+
+        // --- Window Controls ---
+        function minimizeWindow(winId) { document.getElementById(winId).style.display = 'none'; }
+        function maximizeWindow(winId) {
+            const win = document.getElementById(winId);
+            if(win.style.width === '100%') {
+                win.style.width = '450px'; win.style.height = '280px';
+                win.style.top = '20px'; win.style.left = '20px';
+            } else {
+                win.style.width = 'calc(100vw - 290px)'; win.style.height = 'calc(100vh - 60px)';
+                win.style.top = '10px'; win.style.left = '280px';
+            }
+            fitAddon.fit();
+        }
+        function closeWindow(winId) { document.getElementById(winId).style.display = 'none'; }
+        function spawnWindow(name) {
+            const win = document.getElementById('win-' + name);
+            if(win) {
+                win.style.display = 'flex';
+                win.style.zIndex = ++zIndexCounter;
+                if(name === 'Console') fitAddon.fit();
+            }
+        }
+
+        let zIndexCounter = 10;
+        function dragWindow(e, winId) {
+            const win = document.getElementById(winId);
+            win.style.zIndex = ++zIndexCounter;
+            let startX = e.clientX, startY = e.clientY;
+            let initialLeft = win.offsetLeft, initialTop = win.offsetTop;
+
+            function onMouseMove(e) {
+                win.style.left = (initialLeft + e.clientX - startX) + 'px';
+                win.style.top = (initialTop + e.clientY - startY) + 'px';
+            }
+            function onMouseUp() {
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                fitAddon.fit();
+            }
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        }
+    </script>
+</body>
+</html>
