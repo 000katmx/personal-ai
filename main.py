@@ -18,7 +18,7 @@ conversation_history = [
 
 
 @app.route("/")
-index():
+def index():
   # Apnar index.html ke render korbe (templates folder-e rakhte hobe)
   return render_template("index.html")
 
