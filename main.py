@@ -1,9 +1,12 @@
 import os
 from flask import Flask, jsonify, render_template, request
+from groq import Groq
 
 app = Flask(__name__)
 
-# Global conversation history storage
+# Initialize Groq client using Render environment variable
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
 conversation_history = [
     {
         "role": "system",
@@ -19,7 +22,6 @@ conversation_history = [
 
 @app.route("/")
 def index():
-  # Apnar index.html ke render korbe (templates folder-e rakhte hobe)
   return render_template("index.html")
 
 
@@ -32,18 +34,17 @@ def chat():
     if not user_input.strip():
       return jsonify({"response": "Please provide a valid query."})
 
-    # Add user message to history
     conversation_history.append({"role": "user", "content": user_input})
 
-    # Note: Render-e local Ollama cholbe na, tai ekhane apnar model/API logic ba
-    # Hugging Face/OpenAI/Groq ba mock AI response handle korte parben.
-    # Ekhane ekta smart fallback ba response generator rakha holo:
-    ai_response = (
-        f"[MN AI Neural Link]: Processed query [real]: '{user_input}'. All"
-        " systems nominal, zero-error validation complete."
+    # Real-time inference using Groq API
+    chat_completion = groq_client.chat.completions.create(
+        messages=conversation_history,
+        model="llama-3.3-70b-versatile",
+        temperature=0.7,
     )
 
-    # Add assistant response to history
+    ai_response = chat_completion.choices[0].message.content
+
     conversation_history.append(
         {"role": "assistant", "content": ai_response}
     )
