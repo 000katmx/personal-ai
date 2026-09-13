@@ -196,6 +196,7 @@
             border-left: 2px solid var(--accent-cyan);
             background: rgba(0, 240, 255, 0.05);
             color: #d1fffa;
+            white-space: pre-wrap;
         }
         .user-msg {
             padding: 6px 8px;
@@ -203,6 +204,7 @@
             background: rgba(0, 255, 102, 0.05);
             color: var(--terminal-green);
             text-align: right;
+            white-space: pre-wrap;
         }
         .ai-input-row {
             display: flex;
@@ -319,7 +321,7 @@
                 </div>
             </div>
 
-            <!-- Window 2: MN_AI Neural Chat Assistant (REAL INTEGRATED LOGIC) -->
+            <!-- Window 2: MN_AI Neural Chat Assistant (REAL GROQ API INTEGRATED) -->
             <div class="window" id="win-AIChat" style="top: 20px; left: 490px; width: 440px; height: 280px;">
                 <div class="window-header" onmousedown="dragWindow(event, 'win-AIChat')">
                     <span>MN_AI Neural Assistant $</span>
@@ -331,7 +333,7 @@
                 </div>
                 <div class="window-body">
                     <div class="ai-chat-screen" id="aiChatLogs">
-                        <div class="ai-msg"><b>[MN_AI $]:</b> Real neural link active. Ask me any technical query, math problem, or command!</div>
+                        <div class="ai-msg"><b>[MN_AI $]:</b> Real neural link active via Groq LLaMA 3.3. Ask me anything!</div>
                     </div>
                     <div class="ai-input-row">
                         <span style="color: var(--accent-cyan);">ai&gt;</span>
@@ -371,11 +373,11 @@
     </div>
 
     <script>
-        // --- REAL INTELLIGENT AI Chat Logic (Evaluates math expressions, system queries, real responses) ---
+        // --- REAL Groq API Connected AI Chat Logic ---
         const aiInputBox = document.getElementById('aiInputBox');
         const aiChatLogs = document.getElementById('aiChatLogs');
 
-        aiInputBox.addEventListener('keypress', function(e) {
+        aiInputBox.addEventListener('keypress', async function(e) {
             if(e.key === 'Enter') {
                 const text = aiInputBox.value.trim();
                 if(!text) return;
@@ -384,33 +386,36 @@
                 aiInputBox.value = '';
                 aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
 
-                // Real Processing logic
-                setTimeout(() => {
-                    let reply = "";
-                    const lower = text.toLowerCase();
-                    
-                    try {
-                        // If it's a mathematical expression (e.g. 5*5, 12+4/2) calculate it for real!
-                        if (/^[0-9+\-*/().\s]+$/.test(text)) {
-                            let result = eval(text);
-                            reply = `Calculated Result = ${result}`;
-                        } else if(lower.includes('time')) {
-                            reply = `Current Oman Time: ${new Date().toLocaleTimeString()} (Real-time)`;
-                        } else if(lower.includes('date')) {
-                            reply = `Current Date: ${new Date().toDateString()}`;
-                        } else if(lower.includes('help') || lower.includes('who are you')) {
-                            reply = "I am MN_AI ($), your real assistant node. I can evaluate mathematical equations, report live system timestamps, and process text commands.";
-                        } else {
-                            // Smart contextual response based on query keywords
-                            reply = `Processed query [real]: "${text}". Analysis complete with zero-error validation.`;
-                        }
-                    } catch(err) {
-                        reply = `Processed query: "${text}". Connection secure.`;
-                    }
+                // Show processing indicator
+                const loadingId = 'loading-' + Date.now();
+                aiChatLogs.innerHTML += `<div class="ai-msg" id="${loadingId}"><b>[MN_AI $]:</b> Processing via Groq LLM...</div>`;
+                aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
 
-                    aiChatLogs.innerHTML += `<div class="ai-msg"><b>[MN_AI $]:</b> ${reply}</div>`;
-                    aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
-                }, 400);
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: text })
+                    });
+
+                    const data = await response.json();
+                    const loadingElement = document.getElementById(loadingId);
+                    if (loadingElement) loadingElement.remove();
+
+                    if (data.response) {
+                        aiChatLogs.innerHTML += `<div class="ai-msg"><b>[MN_AI $]:</b> ${data.response}</div>`;
+                    } else if (data.error) {
+                        aiChatLogs.innerHTML += `<div class="ai-msg" style="color: var(--alert-red);"><b>[ERROR]:</b> ${data.error}</div>`;
+                    }
+                } catch(err) {
+                    const loadingElement = document.getElementById(loadingId);
+                    if (loadingElement) loadingElement.remove();
+                    aiChatLogs.innerHTML += `<div class="ai-msg" style="color: var(--alert-red);"><b>[ERROR]:</b> Failed to connect to server.</div>`;
+                }
+
+                aiChatLogs.scrollTop = aiChatLogs.scrollHeight;
             }
         });
 
@@ -627,5 +632,4 @@
         }
     </script>
 </body>
-
 </html>
