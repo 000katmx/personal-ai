@@ -36,10 +36,10 @@ def chat():
 
     conversation_history.append({"role": "user", "content": user_input})
 
-    # Real-time inference using Groq API
+    # Real-time inference using Groq API with universal llama3-8b-8192 model
     chat_completion = groq_client.chat.completions.create(
         messages=conversation_history,
-        model="llama-3.1-8b-instant",
+        model="llama3-8b-8192",
         temperature=0.7,
     )
 
